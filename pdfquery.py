@@ -20,6 +20,9 @@ supabase_url = config('SUPABASE_URL')
 supabase_key = config('SUPABASE_SERVICE_KEY')
 supabase: Client = create_client(supabase_url, supabase_key)
 
+supabase_table_name = config('SUPABASE_TABLE_NAME')
+supabase_query_name = config('SUPABASE_QUERY_NAME')
+
 # Initialize OpenAI embeddings
 embeddings = OpenAIEmbeddings(deployment="chaining",
                               openai_api_version=config('OPENAI_API_VERSION'),
@@ -44,9 +47,7 @@ def write_to_supabase(vector_store, docs):
     retries = 3
     for _ in range(retries):
         try:
-            vector_store.from_documents(docs, embeddings, client=supabase, table_name=f"gdpr".lower(), query_name=f"gdpr_match_documents".lower())
-            
-            #vector_store.from_documents(docs, embeddings, client=supabase, table_name=f"ethicspdfs".lower(), query_name=f"ethicspdfs_match_documents".lower())
+            vector_store.from_documents(docs, embeddings, client=supabase, table_name=supabase_table_name, query_name=fsupabase_query_name)
             break
         except TimeoutError:
             time.sleep(5)  # Wait for 5 seconds before retrying
@@ -54,9 +55,8 @@ def write_to_supabase(vector_store, docs):
 
 def uploadFile (filepath = path):
     for dirpath, dirnames, filenames in os.walk(filepath):
-        vector_store = SupabaseVectorStore(client=supabase, embedding=embeddings, table_name=f"gdpr", query_name=f"egdpr_match_documents",)
-        
-        #vector_store = SupabaseVectorStore(client=supabase, embedding=embeddings, table_name=f"ethicspdfs", query_name=f"ethicspdfs_match_documents",)
+
+        vector_store = SupabaseVectorStore(client=supabase, embedding=embeddings, table_name=supabase_table_name, query_name=supabase_query_name,)
         for filename in filenames:
             if filename.endswith('.pdf'):
                 try:
@@ -70,9 +70,7 @@ def uploadFile (filepath = path):
 
 # generate a response
 def generate_response(prompt):
-    #vector_store = SupabaseVectorStore(client=supabase, embedding=embeddings, table_name=f"gdpr", query_name=f"gdpr_match_documents",)
-    
-    vector_store = SupabaseVectorStore(client=supabase, embedding=embeddings, table_name=f"ethicspdfs", query_name=f"ethicspdfs_match_documents",)
+    vector_store = SupabaseVectorStore(client=supabase, embedding=embeddings, table_name=supabase_table_name, query_name=supabase_query_name,)
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=vector_store.as_retriever())
     response = qa.run(f'{prompt}')
     return response
